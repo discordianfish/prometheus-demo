@@ -1,0 +1,174 @@
+#!/bin/bash
+set -e
+MYSQLROOTPASS=some-secret-password
+MYSQLPROMPASS=$MYSQLROOTPASS
+
+DB_URL="mysql2://promdash:$MYSQLPROMPASS@[HOST]/promdash"
+
+HOST_IP=`ip route get 8.8.8.8 | head -1 | sed 's/^.*src //;s/[^0-9]$//'`
+
+EMAIL=$1
+SMTP=$2
+
+if [ -z "$EMAIL" -o -z "$SMTP" ]
+then
+  echo "Syntax: $0 alert-email smtp-smart-host"
+  exit 1
+fi
+
+# Runs docker container if it's not already there
+run() {
+  TMP=`tempfile`
+  test -t 0 || cat > "$TMP"
+  NAME=$1
+  shift
+  if docker inspect "$NAME" > /dev/null 2>&1
+  then
+    docker start "$NAME" > /dev/null
+    return
+  fi
+  cat "$TMP" | docker run --name $NAME "$@" > /dev/null
+  # rm "$TMP"
+}
+
+# Start and wait for Docker
+wrapdocker &
+while ! docker ps > /dev/null 2>&1
+do
+  sleep 1
+done
+
+# Exporters
+echo "Starting exporters:"
+## The node-exporter runs in the host network namespace to expose metrics about host interfaces
+run node-exporter -d --net=host prom/node-exporter:latest -listen :9080
+echo "- node-exporter started"
+
+run container-exporter -d -p 9081:8080 -v /sys/fs/cgroup:/cgroup \
+  -v /var/run/docker.sock:/var/run/docker.sock dckr/container-exporter:latest
+echo "- container-exporter started"
+
+# Prometheus + Alertmanager
+# FIXME: add alert rules
+echo "Starting prometheus and alertmanager"
+cat << EOF | run prometheus-conf -i -v /conf busybox:latest tee /conf/prometheus.conf
+global {
+  scrape_interval: "15s"     # By default, scrape targets every 15 seconds.
+  evaluation_interval: "15s" # By default, evaluate rules every 15 seconds.
+  rule_file: "/conf/prometheus.rules"
+}
+
+job: {
+  name: "prometheus"
+  scrape_interval: "5s"
+  target_group: {
+    target: "http://localhost:9090/metrics"
+  }
+}
+
+job: {
+  name: "node-exporter"
+  scrape_interval: "15s"
+  target_group: {
+    target: "http://$HOST_IP:9080/metrics"
+  }
+}
+
+job: {
+  name: "container-exporter"
+  scrape_interval: "15s"
+  target_group: {
+    target: "http://cexporter:8080/metrics"
+  }
+}
+EOF
+
+cat << EOF | run prometheus-rules -i --volumes-from prometheus-conf busybox:latest \
+  tee /conf/prometheus.rules
+ALERT NodeDown
+  IF up{env =~ "^prod$|^dmz$"} == 0
+  FOR 2m
+  WITH {
+    severity="page"
+  }
+  SUMMARY "Node {{$labels.instance}} down"
+  DESCRIPTION "{{$labels.instance}} has been down for more than 5 minutes."
+
+ALERT NodeLowMemory
+  IF mem_available_percent{env =~ "^prod$|^dmz$"} < 10
+  FOR 2m
+  WITH {
+    severity="page"
+  }
+  SUMMARY "Node {{$labels.instance}} memory low"
+  DESCRIPTION "{{$labels.instance}} has less than 10% memory available"
+
+ALERT NodeLowDisk
+  IF node_filesystem_avail_percent{filesystem="/"} < 20
+  FOR 2m
+  WITH {
+    severity="page"
+  }
+  SUMMARY "{{$labels.instance}}: Low disk space"
+  DESCRIPTION "{{$labels.instance}}: Free disk space for / dropped below 20%"
+EOF
+
+cat << EOF | run alertmanager-conf -i -v /conf busybox:latest tee /conf/alertmanager.conf
+notification_config {
+  name: "default"
+  email_config {
+    email: "$EMAIL"
+  }
+}
+aggregation_rule {
+  repeat_rate_seconds: 7200
+  notification_config_name: "default"
+}
+EOF
+
+run alertmanager -d --volumes-from alertmanager-conf prom/alertmanager:latest \
+    -listenAddress :9095 -configFile /conf/alertmanager.conf -smtpSmartHost $SMTP
+echo "- alertmanager started"
+
+run prometheus -d -p 9090:9090 --volumes-from=prometheus-conf --link container-exporter:cexporter --link alertmanager:alertmanager \
+  prom/prometheus:latest -alertmanager.url=http://alertmanager:9095 -config.file=/conf/prometheus.conf
+echo "- prometheus started"
+
+# Promdash + MySQL
+echo "Starting promdash and mysql"
+run mysql-data -v /var/lib/mysql busybox:latest true
+
+if ! docker inspect mysql-server > /dev/null 2>&1
+then
+  run mysql-server -d --volumes-from mysql-data -e MYSQL_ROOT_PASSWORD=$MYSQLROOTPASS -p 3306:3306 mysql:latest
+
+  while ! docker run --link mysql-server:mysql --rm mysql sh -c \
+    'exec mysqladmin -h"$MYSQL_PORT_3306_TCP_ADDR" -P"$MYSQL_PORT_3306_TCP_PORT" -uroot -p"$MYSQL_ENV_MYSQL_ROOT_PASSWORD" ping' > /dev/null 2>&1 
+  do
+    echo -n "."
+    sleep 1
+  done
+  cat promdash.sql | run mysql-set-grants -i --link mysql-server:mysql --rm mysql:latest sh -c 'exec mysql -h"$MYSQL_PORT_3306_TCP_ADDR" -P"$MYSQL_PORT_3306_TCP_PORT" -uroot -p'$MYSQLROOTPASS promdash
+fi
+
+cat << EOF | run mysql-set-grants -i --link mysql-server:mysql --rm mysql:latest sh -c 'exec mysql -h"$MYSQL_PORT_3306_TCP_ADDR" -P"$MYSQL_PORT_3306_TCP_PORT" -uroot -p'$MYSQLROOTPASS
+CREATE DATABASE IF NOT EXISTS promdash;
+GRANT ALL PRIVILEGES ON promdash.* TO promdash@'%' IDENTIFIED BY '$MYSQLPROMPASS';
+FLUSH PRIVILEGES;
+EOF
+echo "- mysql started"
+
+docker run --rm --link mysql-server:db -e DATABASE_URL=$DB_URL \
+  prom/promdash:latest ./bin/rake db:migrate
+
+run promdash -d --link mysql-server:db --link prometheus:prometheus -p 9091:3000 -e DATABASE_URL=$DB_URL prom/promdash:latest
+echo "- promdash started"
+
+while ! curl -s http://localhost:9091 > /dev/null
+do
+  sleep 1
+done
+curl -H 'Content-Type: application/json' -X PUT -d @hosts.json      http://localhost:9091/hosts.json
+curl -H 'Content-Type: application/json' -X PUT -d @containers.json http://localhost:9091/containers.json
+echo "- dashboards imported"
+echo "Visit http://localhost:9091 for the dashboards and http://localhost:9090 for prometheus"

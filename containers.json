@@ -1,0 +1,173 @@
+{
+  "dashboard_json": {
+    "widgets": [
+      {
+        "legendFormatStrings": [
+          {
+            "name": "",
+            "id": 1
+          }
+        ],
+        "title": "Container memory usage in bytes",
+        "range": "1h",
+        "endTime": null,
+        "expressions": [
+          {
+            "id": 0,
+            "expression": "container_memory_usage_bytes",
+            "axisID": 1,
+            "serverID": 1
+          }
+        ],
+        "type": "graph",
+        "showLegend": "sometimes",
+        "interpolationMethod": "cardinal",
+        "axes": [
+          {
+            "renderer": "line",
+            "id": 1,
+            "format": "kmbt",
+            "scale": "linear",
+            "orientation": "left"
+          }
+        ]
+      },
+      {
+        "legendFormatStrings": [
+          {
+            "name": "",
+            "id": 1
+          }
+        ],
+        "title": "CPU usage user in %",
+        "range": "1h",
+        "endTime": null,
+        "expressions": [
+          {
+            "id": 0,
+            "expression": "rate(container_cpu_usage_seconds_total{type=\"user\"}[5m]) * 100",
+            "axisID": 1,
+            "serverID": 1
+          }
+        ],
+        "type": "graph",
+        "showLegend": "sometimes",
+        "interpolationMethod": "cardinal",
+        "axes": [
+          {
+            "renderer": "line",
+            "id": 1,
+            "format": "kmbt",
+            "scale": "linear",
+            "orientation": "left"
+          }
+        ]
+      },
+      {
+        "legendFormatStrings": [
+          {
+            "name": "",
+            "id": 1
+          }
+        ],
+        "title": "CPU usage kernel in %",
+        "range": "1h",
+        "endTime": null,
+        "expressions": [
+          {
+            "id": 0,
+            "expression": "rate(container_cpu_usage_seconds_total{type=\"kernel\"}[5m]) * 100",
+            "axisID": 1,
+            "serverID": 1
+          }
+        ],
+        "type": "graph",
+        "showLegend": "sometimes",
+        "interpolationMethod": "cardinal",
+        "axes": [
+          {
+            "renderer": "line",
+            "id": 1,
+            "format": "kmbt",
+            "scale": "linear",
+            "orientation": "left"
+          }
+        ]
+      },
+      {
+        "legendFormatStrings": [
+          {
+            "name": "",
+            "id": 1
+          }
+        ],
+        "title": "Block IO Bytes/s",
+        "range": "1h",
+        "endTime": null,
+        "expressions": [
+          {
+            "id": 0,
+            "expression": "rate(container_blkio_io_serviced_recursive_total{op=\"Total\"}[5m])",
+            "axisID": 1,
+            "serverID": 1
+          }
+        ],
+        "type": "graph",
+        "showLegend": "sometimes",
+        "interpolationMethod": "cardinal",
+        "axes": [
+          {
+            "renderer": "line",
+            "id": 1,
+            "format": "kmbt",
+            "scale": "linear",
+            "orientation": "left"
+          }
+        ]
+      },
+      {
+        "axes": [
+          {
+            "id": 1,
+            "format": "kmbt",
+            "scale": "linear",
+            "renderer": "line",
+            "orientation": "left"
+          }
+        ],
+        "title": "Block IO Ops/s",
+        "range": "1h",
+        "endTime": null,
+        "expressions": [
+          {
+            "expression": "rate(container_blkio_io_service_bytes_recursive_total{op=\"Total\"}[5m])",
+            "axisID": 1,
+            "serverID": 1,
+            "id": 0
+          }
+        ],
+        "type": "graph",
+        "showLegend": "sometimes",
+        "legendFormatStrings": [
+          {
+            "name": "",
+            "id": 1
+          }
+        ],
+        "interpolationMethod": "cardinal"
+      }
+    ],
+    "globalConfig": {
+      "palette": "colorwheel",
+      "range": "1h",
+      "vars": {},
+      "endTime": null,
+      "theme": "light_theme",
+      "aspectRatio": 0.75,
+      "numColumns": 2
+    }
+  },
+  "updated_at": "2014-12-11T13:59:56.000Z",
+  "created_at": "2014-05-20T23:48:09.000Z",
+  "name": "Containers"
+}

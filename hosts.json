@@ -1,0 +1,275 @@
+{
+  "dashboard_json": {
+    "widgets": [
+      {
+        "legendFormatStrings": [
+          {
+            "name": "{{instance}}",
+            "id": 1
+          }
+        ],
+        "title": "Available Memory %",
+        "range": "1h",
+        "endTime": null,
+        "expressions": [
+          {
+            "id": 0,
+            "legendID": 1,
+            "expression": "100 -  (node_memory_MemTotal - node_memory_Cached - node_memory_MemFree) * 100 / node_memory_MemTotal",
+            "axisID": 1,
+            "serverID": 1
+          }
+        ],
+        "type": "graph",
+        "showLegend": "sometimes",
+        "axes": [
+          {
+            "renderer": "line",
+            "id": 1,
+            "format": "kmbt",
+            "scale": "linear",
+            "orientation": "left"
+          }
+        ],
+        "interpolationMethod": "cardinal"
+      },
+      {
+        "axes": [
+          {
+            "id": 1,
+            "format": "kmbt",
+            "scale": "linear",
+            "renderer": "line",
+            "orientation": "left"
+          }
+        ],
+        "title": "Available Memory Total",
+        "range": "1h",
+        "endTime": null,
+        "expressions": [
+          {
+            "expression": "node_memory_Cached + node_memory_MemFree",
+            "axisID": 1,
+            "serverID": 1,
+            "id": 0
+          }
+        ],
+        "type": "graph",
+        "showLegend": "sometimes",
+        "legendFormatStrings": [
+          {
+            "name": "",
+            "id": 1
+          }
+        ],
+        "interpolationMethod": "cardinal"
+      },
+      {
+        "legendFormatStrings": [
+          {
+            "name": "{{instance}}",
+            "id": 1
+          }
+        ],
+        "title": "Load Avg",
+        "range": "1h",
+        "endTime": null,
+        "expressions": [
+          {
+            "id": 0,
+            "legendID": 1,
+            "expression": "node_load1",
+            "axisID": 1,
+            "serverID": 1
+          }
+        ],
+        "type": "graph",
+        "showLegend": "sometimes",
+        "axes": [
+          {
+            "renderer": "line",
+            "id": 1,
+            "format": "kmbt",
+            "scale": "linear",
+            "orientation": "left"
+          }
+        ],
+        "interpolationMethod": "cardinal"
+      },
+      {
+        "axes": [
+          {
+            "id": 1,
+            "format": "kmbt",
+            "scale": "linear",
+            "renderer": "line",
+            "orientation": "left"
+          },
+          {
+            "id": 2,
+            "format": "kmbt",
+            "scale": "linear",
+            "renderer": "line",
+            "orientation": "left"
+          }
+        ],
+        "title": "Network traffic",
+        "range": "1h",
+        "endTime": null,
+        "expressions": [
+          {
+            "expression": "rate(node_network_transmit_bytes[5m])",
+            "axisID": 1,
+            "serverID": 1,
+            "id": 0
+          },
+          {
+            "expression": "rate(node_network_receive_bytes[5m])",
+            "axisID": 2,
+            "serverID": 1,
+            "id": 1
+          }
+        ],
+        "type": "graph",
+        "showLegend": "always",
+        "legendFormatStrings": [
+          {
+            "name": "",
+            "id": 1
+          }
+        ],
+        "interpolationMethod": "cardinal"
+      },
+      {
+        "legendFormatStrings": [
+          {
+            "name": "",
+            "id": 1
+          }
+        ],
+        "title": "Network Packets",
+        "range": "1h",
+        "endTime": null,
+        "expressions": [
+          {
+            "id": 0,
+            "expression": "rate(node_network_receive_packets[5m])",
+            "axisID": 1,
+            "serverID": 1
+          },
+          {
+            "id": 1,
+            "expression": "rate(node_network_transmit_packets[5m])",
+            "axisID": 1,
+            "serverID": 1
+          }
+        ],
+        "type": "graph",
+        "showLegend": "sometimes",
+        "interpolationMethod": "cardinal",
+        "axes": [
+          {
+            "renderer": "line",
+            "id": 1,
+            "format": "kmbt",
+            "scale": "linear",
+            "orientation": "left"
+          }
+        ]
+      },
+      {
+        "legendFormatStrings": [
+          {
+            "name": "{{instance}}",
+            "id": 1
+          }
+        ],
+        "title": "IO: read/write OP/s",
+        "range": "1h",
+        "endTime": null,
+        "expressions": [
+          {
+            "id": 0,
+            "legendID": 1,
+            "expression": "rate(node_disk_writes_completed[5m])",
+            "axisID": 1,
+            "serverID": 1
+          },
+          {
+            "expression": "rate(node_disk_reads_completed[5m])",
+            "axisID": 2,
+            "serverID": 1,
+            "id": 1
+          }
+        ],
+        "type": "graph",
+        "showLegend": "sometimes",
+        "axes": [
+          {
+            "renderer": "line",
+            "id": 1,
+            "format": "kmbt",
+            "scale": "linear",
+            "orientation": "left"
+          },
+          {
+            "id": 2,
+            "format": "kmbt",
+            "scale": "linear",
+            "renderer": "line",
+            "orientation": "left"
+          }
+        ],
+        "interpolationMethod": "cardinal"
+      },
+      {
+        "legendFormatStrings": [
+          {
+            "name": "{{instance}}",
+            "id": 1
+          }
+        ],
+        "title": "IO: Time seconds/s",
+        "range": "1h",
+        "endTime": null,
+        "expressions": [
+          {
+            "id": 0,
+            "legendID": 1,
+            "expression": "rate(node_disk_io_time_ms[5m])",
+            "axisID": 1,
+            "serverID": 1
+          }
+        ],
+        "type": "graph",
+        "showLegend": "sometimes",
+        "axes": [
+          {
+            "renderer": "line",
+            "id": 1,
+            "format": "kmbt",
+            "scale": "linear",
+            "orientation": "left"
+          }
+        ],
+        "interpolationMethod": "cardinal"
+      }
+    ],
+    "globalConfig": {
+      "keepURLUpdated": true,
+      "range": "1h",
+      "showVars": false,
+      "vars": {
+        "": "",
+        "title": "foo"
+      },
+      "endTime": null,
+      "theme": "light_theme",
+      "aspectRatio": 0.5625,
+      "numColumns": 2
+    }
+  },
+  "updated_at": "2014-12-11T13:59:56.000Z",
+  "created_at": "2014-02-26T16:19:35.000Z",
+  "name": "Hosts"
+}
